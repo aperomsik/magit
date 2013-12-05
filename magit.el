@@ -510,6 +510,14 @@ UNIT.  Also see option `magit-log-margin-spec'."
   :group 'magit
   :type 'hook)
 
+(defcustom magit-status-all-tracked-files nil
+  "Whether magit-status includes the `all tracked files' section."
+  )
+
+(defcustom magit-status-collapse-tracked-files nil
+  "Whether magit-status collapses the `all tracked files' section by default."
+  )
+
 (defcustom magit-status-sections-hook
   '(magit-insert-status-local-line
     magit-insert-status-remote-line
@@ -528,7 +536,8 @@ UNIT.  Also see option `magit-log-margin-spec'."
     magit-insert-unstaged-changes
     magit-insert-staged-changes
     magit-insert-unpulled-commits
-    magit-insert-unpushed-commits)
+    magit-insert-unpushed-commits
+    magit-insert-tracked-files)
   "Hook run to insert sections into the status buffer.
 
 This option allows reordering the sections and adding sections
@@ -2523,6 +2532,7 @@ With a prefix argument also expand it." title)
 
 (magit-define-section-jumper stashes   "Stashes")
 (magit-define-section-jumper untracked "Untracked files")
+(magit-define-section-jumper tracked   "Tracked files")
 (magit-define-section-jumper unstaged  "Unstaged changes")
 (magit-define-section-jumper staged    "Staged changes")
 (magit-define-section-jumper unpulled  "Unpulled commits")
@@ -4652,6 +4662,21 @@ when asking for user input.
             (setf (magit-section-info section) file)
             (insert "\t" file "\n")))
         (insert "\n")))))
+
+(defun magit-insert-tracked-files ()
+  (when magit-status-all-tracked-files
+    (magit-with-section (section untracked 'tracked "Tracked files:"
+                                 t magit-status-collapse-tracked-files)
+      (let ((files (magit-git-lines "ls-files" )))
+        (if (not files)
+            (setq section nil)
+          (dolist (file files)
+            ; (setq file (magit-decode-git-path file ))
+            (magit-with-section (section file file)
+              (setf (magit-section-info section) file)
+              (insert "\t" file "\n")))
+          (insert "\n"))))))
+
 
 (defun magit-insert-pending-commits ()
   (let* ((info (magit-read-rewrite-info))
