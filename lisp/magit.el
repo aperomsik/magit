@@ -96,6 +96,14 @@ at all."
              magit-insert-upstream-header
              magit-insert-tags-header))
 
+(defcustom magit-status-all-tracked-files nil
+  "Whether magit-status includes the `all tracked files' section."
+  )
+
+(defcustom magit-status-collapse-tracked-files nil
+  "Whether magit-status collapses the `all tracked files' section by default."
+  )
+
 (defcustom magit-status-sections-hook
   '(magit-insert-status-headers
     magit-insert-merge-log
@@ -110,7 +118,8 @@ at all."
     magit-insert-staged-changes
     magit-insert-stashes
     magit-insert-unpulled-commits
-    magit-insert-unpushed-commits)
+    magit-insert-unpushed-commits
+    magit-insert-tracked-files)
   "Hook run to insert sections into a status buffer."
   :package-version '(magit . "2.1.0")
   :group 'magit-status
@@ -313,6 +322,7 @@ deep."
   '((t :weight normal))
   "Face for filenames."
   :group 'magit-faces)
+(magit-define-section-jumper tracked   "Tracked files")
 
 ;;; Inspect
 ;;;; Status Mode
@@ -458,6 +468,8 @@ The sections are inserted by running the functions on the hook
          (concat
           (format "%-10s" "Upstream: ")
           (if hash (propertize hash 'face 'magit-hash) "missing") " "
+
+
           (and (magit-get-boolean "branch" branch "rebase") "onto ")
           (propertize upstream 'face
                       (if (string= (magit-get "branch" branch "remote") ".")
@@ -544,6 +556,20 @@ Do so depending on the value of `status.showUntrackedFiles'."
           (magit-insert-heading)
           (setq files (magit-insert-un/tracked-files-1 files dir))))))
   files)
+
+(defun magit-insert-tracked-files ()
+  (when magit-status-all-tracked-files
+    (magit-with-section (section untracked 'tracked "Tracked files:"
+                                 t magit-status-collapse-tracked-files)
+      (let ((files (magit-git-lines "ls-files" )))
+        (if (not files)
+            (setq section nil)
+          (dolist (file files)
+            ; (setq file (magit-decode-git-path file ))
+            (magit-with-section (section file file)
+              (setf (magit-section-info section) file)
+              (insert "\t" file "\n")))
+          (insert "\n"))))))
 
 ;;;; Refs Mode
 
